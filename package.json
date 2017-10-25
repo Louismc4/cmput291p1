@@ -1,0 +1,18 @@
+{
+  "name": "cmput291p1",
+  "version": "1.0.0",
+  "description": "cmput 291 project one with Riley, Helen, Louis",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Louis Moc",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "ejs": "^2.5.7",
+    "express": "^4.16.2",
+    "express-session": "^1.15.6",
+    "sqlite3": "^3.1.13"
+  }
+}

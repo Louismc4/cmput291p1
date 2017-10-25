@@ -1,0 +1,42 @@
+<% include ./partials/header %>
+
+    <div class="container">
+        <div class="row">
+            <div style="width: 30%; margin:30px auto;">
+                <h1 style="text-align: center">Register</h1>
+                <form action="/registercustomer">
+                    <div class="form-group">
+                        <input class="form-control" name="custregistername" placeholder="Customer Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input class="form-control" name="customerregisterpassword" type="password" placeholder="Customer Password" required>
+                    </div>
+                </form>
+                <form action="/registeragent">
+                    <div class="form-group">
+                        <input class="form-control" name="agentregistername" placeholder="Agent Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input class="form-control" name="agentregisterpassword" type="Password" placeholder="Agent password" required>
+                    </div>
+                </form>
+                <h1 style="text-align: center">Login</h1>
+                <form action="/logincustomer">
+                    <div class="form-group">
+                        <input class="form-control" name="custloginname" placeholder="Customer Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input class="form-control" name="custloginpassword" type="password" placeholder="Customer Password" required>
+                    </div>
+                </form>
+                <form action="/loginagent">
+                    <div class="form-group">
+                        <input class="form-control" name="agentloginname" placeholder="Agent Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input class="form-control" name="agentloginpassword" type="Password" placeholder="Agent password" required>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
