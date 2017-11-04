@@ -4,7 +4,7 @@ var express    = require('express'),
     bodyParser = require('body-parser'),
     sqlite3    = require('sqlite3'),
     flash      = require("connect-flash");
-    
+
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(express.static(__dirname));
 app.use(express.static(__dirname + '/public'));
@@ -25,10 +25,14 @@ app.use(function(request, response, next){
 });
 
 var main     = require('./routes/main'),
-    login    = require('./routes/login');
+    login    = require('./routes/login'),
+    create   = require('./routes/createandinsert/create'),
+    insert   = require('./routes/createandinsert/insert');
 
 app.use(main);
 app.use(login);
+app.use(create);
+app.use(insert);
 
 app.listen(process.env.PORT, process.env.IP, function(){
     console.log('Server Started');
