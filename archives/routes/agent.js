@@ -1,7 +1,6 @@
 var express   = require('express'),
     router    = express.Router(),
-    sqlite3 = require('sqlite3').verbose(),
-    db = new sqlite3.Database('291.db');
+    sqlite3 = require('sqlite3').verbose();
 
 //Agent view page logic
 router.get('/agent', function(request, response){
@@ -21,6 +20,12 @@ router.post('/updatedelivery', function(request, response){
 //List orders
 router.post('/agentaddtostock', function(request, response){
     
+});
+
+router.get('/agentlogout', function(request, response){
+    db.close();
+    request.flash('success', 'Agent Logged Out!');
+    response.redirect('/');
 });
 
 module.exports = router;

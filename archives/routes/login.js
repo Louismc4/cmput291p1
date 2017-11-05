@@ -2,18 +2,11 @@ var express   = require('express'),
     router    = express.Router(),
     sqlite3 = require('sqlite3').verbose(),
     db = new sqlite3.Database('291.db');
-
-var cid = "";
-var aid = "";
-
-//Main Page
-router.get('/', function(request, response){
-    response.render('../views/main', {message : request.flash("error"), message: request.flash("success")}); 
-});
+    
 
 //------------------------------------------------>Login Logic
 
-//Login page
+//Reload page
 router.get('/login', function(request, response){
     response.render('../views/login', {message : request.flash("error"), message: request.flash("success")}); 
 });
@@ -21,7 +14,7 @@ router.get('/login', function(request, response){
 //User clicks on register so we take all their fields
 //a) Check for unique id
 //b) Insert customer data in
-//c) Redirect to customer page if successful otherwise reload page with error
+//c) Redirect to customer page if successful and close the database.
 router.post('/registercustomer', function(request, response){
     
     var id = request.body.custregisterid;
@@ -46,11 +39,11 @@ router.post('/registercustomer', function(request, response){
     db.serialize(function() {
         
         var isUnique = true;
+        var hitError = false;
         
         db.each("SELECT cid FROM customers", function(err, row) {
-            console.log(row);
-            
             if(err){
+                hitError = true;
                 return;
             }
             
@@ -60,9 +53,8 @@ router.post('/registercustomer', function(request, response){
             }
             
         }, function(err, rows){
-            if(err) {
-                request.flash('error', "Customer Tables Query Error: " + err + "!");
-                response.redirect('/login');
+            if(hitError || err) {
+                hitError = false;
                 return;
             }
             if(!isUnique) {
@@ -78,19 +70,21 @@ router.post('/registercustomer', function(request, response){
                         response.redirect('/login');
                         return;
                     } else {
-                        request.flash('success', 'Registration Successful! Login to proceed.');
+                        request.flash('success', 'Registration Successful!');
                         response.redirect('/customer');
+                        // db.close();
                     }
                     isUnique = true;
+                    console.log('Number of rows from query: ' + rows);
                 });
             }
         });
     });
 });    
 
-//User clicks on login so we take all their fields: 
-//a) Log in customer checking for cid and password 
-//b) We redirect to the customer menu. Otherwise reload page with error.
+//User clicks on register so we take all their fields: 
+//a) Log in customer checking for id and password
+//b) Log in customer checking for id and password if there's a match then close the database.
 router.post('/logincustomer', function(request, response){
     
     var id = request.body.custloginid;
@@ -110,40 +104,39 @@ router.post('/logincustomer', function(request, response){
     db.serialize(function() {
         
         var foundMatch = false;
+        var hitError = false;
         
         db.each("SELECT cid, pwd FROM customers", function(err, row) {
-            console.log(row);
-            
             if (err) {
+                hitError = true;
                 return;
             }
-            
+            console.log(row);
             if(id == row.cid && password == row.pwd){
                 foundMatch = true;
                 return;
             }
-            
         }, function(err, rows){
-            if(err){
-                request.flash('error', 'Customers Table Query Error!');
+            if(hitError || err){
+                request.flash('error', 'Customers Query Error!');
                 response.redirect('/login');
+                hitError = false;
             } else if(foundMatch){
                 request.flash('success', 'Customer Login Successful!');
-                // Here we send the id of the customer to the customers page.
-                // We need that to identify them when we list the orders.
-                cid = id;
                 response.redirect('/customer/?cid=' + id);
+                // db.close();
             } else {
                 request.flash('error', 'Incorrect credentials or no such customer with that cid exists!');
                 response.redirect('/login');
             }
+            console.log('Number of rows from query: ' + rows);
         });
     });
 });
 
-//User clicks on login so we take all their fields: 
-//a) Log in agent checking for aid and password 
-//b) We redirect to the agent menu. Otherwise reload page with error.
+//User clicks on register so we take all their fields: 
+//a) Log in agent checking for an id and password match
+//b) Log in agent checking for id and password if there's a match then close the database.
 router.post('/loginagent', function(request, response){
     
     var id = request.body.agentloginname;
@@ -163,31 +156,32 @@ router.post('/loginagent', function(request, response){
     db.serialize(function() {
         
         var foundMatch = false;
+        var hitError = false;
         
         db.each("SELECT aid, pwd FROM agents", function(err, row) {
-            console.log(row);
-            
             if (err) {
+                hitError = true;
                 return;
             }
-            
+            console.log(row);
             if(id == row.aid && password == row.pwd){
                 foundMatch = true;
                 return;
             }
         }, function(err, rows){
-            if(err){
-                request.flash('error', 'Agents Table Query Error!');
+            if(hitError || err){
+                request.flash('error', 'Agents Query Error!');
                 response.redirect('/login');
+                hitError = false;
             } else if(foundMatch){
                 request.flash('success', 'Agent Login Successful!');
-                // Here we send the id of the agent to the agents page.
-                aid = id;
-                response.redirect('/agent/?aid=' + aid);
+                response.redirect('/agent');
+                // db.close();
             } else {
                 request.flash('error', 'Incorrect credentials or no such agent with that aid exists!');
                 response.redirect('/login');
             }
+            console.log('Number of rows from query: ' + rows);
         });
         
     });
@@ -195,20 +189,23 @@ router.post('/loginagent', function(request, response){
 
 //------------------------------------------------------------->Customer Logic
 
+var id;
 //Customer Page
 router.get('/customer', function(request, response){
-    cid = request.query.cid;
-    console.log(cid);
-    if(cid == "" || cid == undefined){
+    id = request.query.cid;
+    console.log(id);
+    if(id == "" || id == undefined){
         request.flash('error', 'You\'re not logged in!');
         response.redirect('/login');
     } else {
-        response.render('../views/customer', {cid : cid, message : request.flash("error"), message: request.flash("success")});
+        db = new sqlite3.Database('291.db');
+        response.render('../views/customer', {id : id, message : request.flash("error"), message: request.flash("success")});
     }
 });
 
 //Search For Products
 router.post('/customersearch', function(request, response){
+    db = new sqlite3.Database('291.db');
     var keywords = request.body.search_products_keywords;
     
     if(typeof keywords == 'undefined' || keywords == '') {
@@ -233,6 +230,7 @@ router.post('/customersearch', function(request, response){
         
         db.run(query, function(err, row) {
             if (err) {
+                hitError = true;
                 return;
             }
             console.log(row);
@@ -242,9 +240,10 @@ router.post('/customersearch', function(request, response){
                 }
             }
         }, function(err, rows){
-            if(err){
+            if(hitError || err){
                 request.flash('error', 'Customer Search Query Error! ' + err);
                 response.redirect('/customer');
+                hitError = false;
             } else {
                 console.log(json_Dictionary);
                 response.send('lol');
@@ -265,86 +264,9 @@ router.post('/customerlist', function(request, response){
     
 });
 
-//------------------------------------------------------------->Agent Logic
-
-//Agent view page logic
-router.get('/agent', function(request, response){
-    response.render('../views/agent', {message : request.flash("error"), message: request.flash("success")});
-});
-
-//Set up a delivery
-router.post('/agentsetupdelivery', function(request, response){
-    
-});
-
-//Update a delivery
-router.post('/updatedelivery', function(request, response){
-    
-});
-
-//List orders
-router.post('/agentaddtostock', function(request, response){
-    
-});
-
-//------------------------------------------------------------->Logout Logic
-
-router.get('/logout', function(request, response){
-    cid = "";
-    aid = "";
-    request.flash('success', 'Logged Out!');
+router.get('/customerlogout', function(request, response){
+    request.flash('success', 'Customer Logged Out!');
     response.redirect('/');
 });
-
-//------------------------------------------------------------->Create Tables and Insert Values Logic
-
-//Create Tables and Insert Values Page
-router.get('/createandinsert', function(request, response){
-    response.render('../views/createandinsert', {message : request.flash("error"), message: request.flash("success")});
-});
-
-//Create Table Statements for the database
-router.post('/createtablesandinsertvalues', function(request, response){
-    
-    var array = request.body.querystring.split(';');
-    
-    //Since it's asynchronous serialize makes sure everything executes correctly.
-    db.serialize(function(){
-        
-        //Split statements into an array by ';' and then execute each statement
-        for(var i = 0; i < array.length-1; i++){
-            console.log(i + ":" + array[i]);
-            var count = 0;
-            db.run(array[i], function(err){
-                
-                //If any errors, reload the page and display error message
-                if(err) {
-                    console.log(i + ":" + err);
-                    stop(request, response, err);
-                    return;
-                }
-                
-                //Move to the next page when done all the statements via callback.
-                count++;
-                if(count == array.length-1){
-                    moveOn(request, response);
-                    return;
-                }
-            });
-        }
-    });
-});
-
-//Reload page error function
-function stop(request, response, err){
-    request.flash('error', 'Error In Creating Tables: ' + err);
-    response.redirect('/createandinsert');
-}
-
-//Move onto the next page function
-function moveOn(request, response){
-    request.flash('success', 'Success In Creating Tables And Inserting Values!');
-    response.redirect('/');
-}
 
 module.exports = router;

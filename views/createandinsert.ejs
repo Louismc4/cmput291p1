@@ -1,60 +1,11 @@
-https://www.npmjs.com/package/sqlite3
+<% include ./partials/headerinsertcreate %>
 
-Database docs -
-http://www.sqlitetutorial.net/sqlite-nodejs/
-http://www.sqlitetutorial.net/sqlite-nodejs/insert/
-http://www.sqlitetutorial.net/sqlite-nodejs/update/
-
-
-**********
-When you type node app.js make sure you're in the workspace folder.
-
-Ex: louismc4:~/workspace/routes 
-
-you need to type cd .. (This moves up the folder one level to workspace)
-
-Ex2: louismc4:~/workspace/routes/createandinsert
-
-type cd .. and then cd .. again (This moves up the folder two levels to workspace)
-
-Ex: louismc4:~/workspace (Now you can type 'node app.js')
-
-<!-------------------------------------------Stuff Done
-.c9 Folder : DONE and Don't touch
-.git : DONE and Don't touch
-node_modules : DONE and Don't touch
-
-routes:
-create.js - DONE
-insert.js - DONE
-
-views:
-create.ejs - DONE
-insert.ejs - DONE
-footer.ejs - DONE
-headeragentcustomer.ejs - DONE
-headerinsertcreate.ejs - DONE
-headerloginregister.ejs - DONE
-headermain.ejs - DONE
-main.ejs - DONE
-login.ejs - DONE
-
-app.js - DONE and Don't touch
-
---------------------------------------------Stuff Not Done
-agent.js - NOT DONE*** (Queries)
-customer.js - NOT DONE*** (Queies)
-login.js - PRETTY MUCH DONE*** (SQL Injection)
-
-agent.ejs - NOT DONE*** (Add query result textfield and ajax)
-customer.ejs - NOT DONE*** (Add query result textfield and ajax)
-
-public:
-main.css(Design stuff) - Not Done***
-
--->
-
-------------------------------------------------------------------CREATE TABLES
+    <div class="container">
+        <div class="row">
+            <h1 style="text-align: center">Create Tables and Insert Value Queries</h1>
+            <form action="/createtablesandinsertvalues" method="POST">
+                <div class="form-group">
+                    <textarea class="form-control" rows="40" type="text" name="querystring" placeholder="EXAMPLE : 
 drop table if exists deliveries;
 drop table if exists olines;
 drop table if exists orders;
@@ -224,6 +175,7 @@ INSERT INTO olines VALUES(100,40,'p30',1,5);
 INSERT INTO olines VALUES(160,20,'p20',1,6);
 INSERT INTO olines VALUES(200,30,'p10',2,4.5);
 
+
 INSERT INTO deliveries VALUES(1000,100,'2017-10-02 23:37:46',NULL);
 INSERT INTO deliveries VALUES(1002,120,'2017-10-02 19:37:46','2017-10-02 23:37:46');
 INSERT INTO deliveries VALUES(1003,190,datetime('now'),NULL);
@@ -233,4 +185,13 @@ INSERT INTO deliveries VALUES(1006,140,datetime('now','-2 day'),datetime('now','
 INSERT INTO deliveries VALUES(1007,150,datetime('now','-1 day'),NULL);
 INSERT INTO deliveries VALUES(1008,160,datetime('now','-6 day'),NULL);
 INSERT INTO deliveries VALUES(1009,170,datetime('now'),NULL);
-INSERT INTO deliveries VALUES(1010,180,datetime('now'),NULL);
+INSERT INTO deliveries VALUES(1010,180,datetime('now'),NULL);"></textarea>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-lg btn-primary btn-block">Submit!</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<% include ./partials/footer %>

@@ -3,41 +3,170 @@
     <div class="container">
         <div class="row">
             <div class="row text-center" style="display:flex; flex-wrap: wrap;">
+                
                 <div class="col-md-4 col-sm-4 col-lg-4">
-                    <h1 style="text-align: center">Search Products</h1>
-                    <form action="/">
+                    <h1 style="text-align: center">Search For Products</h1>
+                    <form action="/customersearch" method="POST">
                         <div class="form-group">
-                            <textarea class="form-control" rows="20" type="text" name="search_products_query" placeholder="Queries" required></textarea>
+                            <textarea class="form-control" rows="10" type="text" name="search_products_keywords" placeholder="Queries" required></textarea>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-lg btn-primary btn-block">Submit!</button>
                         </div>
                     </form>
                 </div>
+                
                 <div class="col-md-4 col-sm-4 col-lg-4">    
-                    <h1 style="text-align: center">Order Products</h1>
+                    <h1 style="text-align: center">Place An Order</h1>
                     <form action="/">
                         <div class="form-group">
-                            <textarea class="form-control" rows="20" type="text" name="order_products_query" placeholder="Queries"></textarea>
+                            <textarea class="form-control" rows="10" type="text" name="order_products_query" placeholder="Queries" required></textarea>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-lg btn-primary btn-block">Submit!</button>
                         </div>
                     </form>
                 </div>
+                
                 <div class="col-md-4 col-sm-4 col-lg-4">    
-                    <h1 style="text-align: center">List Products</h1>
+                    <h1 style="text-align: center">List Orders</h1>
                     <form action="/">
                         <div class="form-group">
-                            <textarea class="form-control" rows="20" type="text" name="list_products_query" placeholder="Queries"></textarea>
+                            <textarea class="form-control" rows="10" type="text" name="list_products_query" placeholder="Queries" ></textarea>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-lg btn-primary btn-block">Submit!</button>
                         </div>
                     </form>
                 </div>
+                
+                <div class="col-md-4 col-sm-4 col-lg-4">    
+                    <h1 style="text-align: center">Search Products Results: </h1>
+                    <div id = "searchFieldForm1" class="form-group">
+                        <p id="searchField1"></p>
+                        <button onclick="details(0)" class="btn btn-lg btn-success btn-block">More Details</button>
+                    </div>
+                    <div id = "searchFieldForm2" class="form-group">
+                        <p id="searchField2"></p>
+                        <button onclick="details(1)" class="btn btn-lg btn-success btn-block">More Details</button>
+                    </div>
+                    <div id = "searchFieldForm3" class="form-group">
+                        <p id="searchField3"></p>
+                        <button onclick="details(2)" class="btn btn-lg btn-success btn-block">More Details</button>
+                    </div>
+                    <div id = "searchFieldForm4" class="form-group">
+                        <p id="searchField4"></p>
+                        <button onclick="details(3)" class="btn btn-lg btn-success btn-block">More Details</button>
+                    </div>
+                    <div id = "searchFieldForm5" class="form-group">
+                        <p id="searchField5"></p>
+                        <button onclick="details(4)" class="btn btn-lg btn-success btn-block">More Details</button>
+                    </div>
+                    <button id = "next5Button" onclick="list()" class="btn btn-lg btn-primary btn-block">Next 5</button>
+                </div>
+                
+                <div class="col-md-4 col-sm-4 col-lg-4">    
+                    <h1 style="text-align: center">Product Details: </h1>
+                    <p id="productDetails"></p>
+                    <div class="form-group">
+                        <input id="quantityField" class="form-control" type="number" min="1" placeholder="1" required>
+                    </div>
+                    <div class="form-group">
+                        <button onclick="add()" class="btn btn-lg btn-primary btn-block">Place In Basket!</button>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>
+    
+    <script>
+        var arr = [];
+        var counter = 0;
+        console.log(<%=id%>);
+        for(var i = 0; i < 48; i++){
+            arr.push(String(i));
+        }
+        
+        var searchFieldForm1 = document.getElementById("searchFieldForm1");
+        var searchFieldForm2 = document.getElementById("searchFieldForm2");
+        var searchFieldForm3 = document.getElementById("searchFieldForm3");
+        var searchFieldForm4 = document.getElementById("searchFieldForm4");
+        var searchFieldForm5 = document.getElementById("searchFieldForm5");
+        
+        var searchField1 = document.getElementById("searchField1");
+        var searchField2 = document.getElementById("searchField2");
+        var searchField3 = document.getElementById("searchField3");
+        var searchField4 = document.getElementById("searchField4");
+        var searchField5 = document.getElementById("searchField5");
+        
+        var next5Button = document.getElementById("next5Button");
+        
+        document.getElementById("quantityField").defaultValue = 1;
+        var productDetails = document.getElementById("productDetails");
+        
+        if(arr.length < 5){
+            next5Button.style.display = "none";
+            switch(arr.length){
+                case 0:
+                    searchFieldForm1.style.display = "none";
+                    searchFieldForm2.style.display = "none";
+                    searchFieldForm3.style.display = "none";
+                    searchFieldForm4.style.display = "none";
+                    searchFieldForm5.style.display = "none";
+                    break;
+                case 1: 
+                    searchFieldForm1.style.display = "none";
+                    searchFieldForm2.style.display = "none";
+                    searchFieldForm3.style.display = "none";
+                    searchFieldForm4.style.display = "none";
+                    searchField5.innerHTML = arr[0]; 
+                    break;
+                case 2: 
+                    searchFieldForm1.style.display = "none";
+                    searchFieldForm2.style.display = "none";
+                    searchFieldForm3.style.display = "none";
+                    searchField4.innerHTML = arr[0]; 
+                    searchField5.innerHTML = arr[1];
+                    break;
+                case 3:
+                    searchFieldForm1.style.display = "none";
+                    searchFieldForm2.style.display = "none";
+                    searchField3.innerHTML = arr[0]; 
+                    searchField4.innerHTML = arr[1]; 
+                    searchField5.innerHTML = arr[2];
+                    break;
+                case 4:
+                    searchFieldForm1.style.display = "none";
+                    searchField2.innerHTML = arr[0]; 
+                    searchField3.innerHTML = arr[1]; 
+                    searchField4.innerHTML = arr[2]; 
+                    searchField5.innerHTML = arr[3];
+                    break;
+            }
+        } else {
+            searchField1.innerHTML = arr[0]; 
+            searchField2.innerHTML = arr[1]; 
+            searchField3.innerHTML = arr[2]; 
+            searchField4.innerHTML = arr[3]; 
+            searchField5.innerHTML = arr[4];
+        }
+        
+        function list(){
+            
+            counter += 5;
+            
+            searchField1.innerHTML = arr[counter % arr.length]; 
+            searchField2.innerHTML = arr[(counter + 1) % arr.length]; 
+            searchField3.innerHTML = arr[(counter + 2) % arr.length]; 
+            searchField4.innerHTML = arr[(counter + 3) % arr.length]; 
+            searchField5.innerHTML = arr[(counter + 4) % arr.length]; 
+            
+        }
+        
+        function details(value){
+            productDetails.innerHTML = arr[(counter + value) % arr.length];
+        }
+    </script>
     
 <% include ./partials/footer %>
