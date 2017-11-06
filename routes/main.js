@@ -273,8 +273,9 @@ router.post('/customersearch', function(request, response){
     }
     
     //For all keywords we use recursive async and check for matches
-    var keywords_Array = keywords.split(',');
-    
+    var qStr = keywords + ' ';
+    var keywords_Array = keywords.split(' ');
+    console.log(keywords_Array);
     var productArray = [];
 
     db.serialize(function() {
@@ -301,7 +302,7 @@ router.post('/customersearch', function(request, response){
             query2 = "SELECT p.pid as productID, COUNT(ca.sid) as numStoresWithStock, MIN(ca.uprice) as minCarryPriceWithStock" + 
             " FROM products p, carries ca" +
             " WHERE ca.pid = p.pid AND ca.qty<>0 AND p.name LIKE '%" + keywords_Array[currentIteration] + "%';";
-    
+            
             /* The number of orders within the past 7 days */
             query3 = "SELECT p.pid as productID, COUNT(o.oid) as ordersPast7" +
             " FROM orders o, olines ol, products p" +
@@ -624,7 +625,7 @@ router.post('/agentvieworders', function(request, response){
     }
     var orderList = [];
     var query = "SELECT oid, pickUpTime, dropOffTime FROM deliveries WHERE trackingNo = " + tno + ";";
-    console.log(query);
+    
     db.each(query, function(err, row){
         if(err) return;
         orderList.push({oid : row.oid, pickuptime : row.pickUpTime, dropofftime : row.dropOffTime});
@@ -834,7 +835,7 @@ router.get('/createandinsert', function(request, response){
 //Create Table Statements for the database
 router.post('/createtablesandinsertvalues', function(request, response){
     
-    var array = request.body.querystring.split(';');
+    var array = request.body.querystring.split(' ');
     
     //Since it's asynchronous serialize makes sure everything executes correctly.
     db.serialize(function(){
