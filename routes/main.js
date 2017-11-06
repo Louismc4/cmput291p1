@@ -79,7 +79,7 @@ router.post('/registercustomer', function(request, response){
                         return;
                     } else {
                         request.flash('success', 'Registration Successful! Login to proceed.');
-                        response.redirect('/customer');
+                        response.redirect('/login');
                     }
                     isUnique = true;
                 });
@@ -132,7 +132,31 @@ router.post('/logincustomer', function(request, response){
                 // Here we send the id of the customer to the customers page.
                 // We need that to identify them when we list the orders.
                 cid = id;
-                response.redirect('/customer/?cid=' + id);
+                
+                var dropTableQuery = "drop table if exists basket;";
+    
+                var createTableQuery = "create table basket (" +
+                "pid           char(6)," +
+                "qty            int," + 
+                "sname          text," + 
+                "cid            text," + 
+                "primary key (pid));";
+                
+                db.each(dropTableQuery, function(err, row) {
+                    if(err) return;
+                }, function(err, rows){
+                    if(err) return;
+                    db.each(createTableQuery, function(err, row) {
+                        if(err) return;
+                    }, function(err, rows){
+                        if(err){
+                            request.flash('error', 'Basket table error: ' + err);
+                            response.redirect('/login');
+                            return;
+                        }
+                        response.redirect('/customer/?cid=' + cid);     
+                    }); 
+                });
             } else {
                 request.flash('error', 'Incorrect credentials or no such customer with that cid exists!');
                 response.redirect('/login');
@@ -203,7 +227,19 @@ router.get('/customer', function(request, response){
         request.flash('error', 'You\'re not logged in!');
         response.redirect('/login');
     } else {
-        response.render('../views/customer', {cid : cid, message : request.flash("error"), message: request.flash("success")});
+        var basketQuery = "SELECT pid, sname, qty, cid FROM basket;";
+        var basketArray = [];
+        db.run(basketQuery, function(err, row) {
+            if(err) return;
+            basketArray.push(row);
+        }, function(err, rows){
+            if(err) {
+                request.flash('error', 'Basket Query Error: ' + err);
+                response.redirect('/customer/?cid=' + cid);
+                return;
+            }
+            response.render('../views/customer', {basketArray : basketArray, cid : cid, productArray : {}, message : request.flash("error"), message: request.flash("success")});
+        });
     }
 });
 
@@ -218,50 +254,270 @@ router.post('/customersearch', function(request, response){
     }
     
     var keywords_Array = keywords.split(' ');
-    var json_Dictionary = []; //Array of key value pairs
     
-    for(var i = 0; i < keywords_Array.length; i++){
-        json_Dictionary[keywords_Array[i]] = 0;
-    }
-    
-    console.log(json_Dictionary);
-    
+    var productArray = [];
+
     db.serialize(function() {
         
-        var hitError = false;
-        var query = "SELECT products.name FROM products, carries, stores WHERE products.pid = carries.pid AND carries.qty > 0 AND stores.sid = carries.sid;"
+        var query1 = "";
+        var query2 = "";
+        var query3 = "";
+        var query4 = "";
         
-        db.run(query, function(err, row) {
-            if (err) {
-                return;
+        var iteration = 0;
+        
+        searchProductsQuery(iteration);
+        
+        function searchProductsQuery(currentIteration){
+                
+            // Product id, name, unit, category, number of stores that carry it, min carry price
+            query1 = "SELECT p.pid as productID, p.name as productName, p.unit as productUnit, p.cat as productCategory, COUNT(ca.sid) as storesCarry, MIN(ca.uprice) as minCarryPrice" + 
+            " FROM products p, carries ca, stores s" + 
+            " WHERE p.pid = ca.pid AND p.name LIKE '%" + keywords_Array[currentIteration] + "%' AND s.sid = ca.sid" +
+            " ORDER BY s.name DESC;";
+            
+            // Selects the number of stores that have the product in stock and 
+            // The minimum price among the stores that have the product in stock
+            query2 = "SELECT p.pid as productID, COUNT(ca.sid) as numStoresWithStock, MIN(ca.uprice) as minCarryPriceWithStock" + 
+            " FROM products p, carries ca" +
+            " WHERE ca.pid = p.pid AND ca.qty<>0 AND p.name LIKE '%" + keywords_Array[currentIteration] + "%';";
+    
+            /* The number of orders within the past 7 days */
+            query3 = "SELECT p.pid as productID, COUNT(o.oid) as ordersPast7" +
+            " FROM orders o, olines ol, products p" +
+            " WHERE o.oid = ol.oid AND ol.pid = p.pid AND p.name LIKE '%" + keywords_Array[currentIteration] + "%' AND date(o.odate, '+7 day') >= date('now');";
+            
+            /*Selecting a product for more detail
+            Also need to display the number of orders w/in the past 7 days. This is 
+            computed with the last query. Store that into a variable and display with
+            these results */
+            query4 = "SELECT *, s.name as storeName, ca.uprice as unitPrice, ca.qty as carriesQuantity" +
+		    " FROM products p, carries ca, stores s" +
+		    " WHERE ca.pid = p.pid AND ca.qty != 0 AND s.sid = ca.sid;"; 
+		    
+		    var productDictionary = {
+                matches : 0,
+                productID: "",
+                productName: "",
+                productUnit: "",
+                productCategory: "",
+                numStoresCarry: 0,
+                minCarryPrice : 0,
+                numStoresWithStock : 0,
+                minCarryPriceWithStock : 0,
+                listOfStores : [],
+                ordersPast7 : 0
             }
-            console.log(row);
-            for(var i = 0; i < keywords_Array.length; i++){
-                if(row.name.contains(json_Dictionary[keywords[i]])){
-                    json_Dictionary[keywords[i]] = json_Dictionary[keywords[i]]++;
+		    
+            db.each(query1, function(err, row) {
+                if (err) return;
+                var foundMatch = false;
+                for(var i = 0; i < productArray.length; i++){
+                    if(productArray[i].productID == row.productID) {
+                        productArray[i].matches = productArray[i].matches + 1;
+                        foundMatch = true;
+                        break;
+                    }
                 }
-            }
-        }, function(err, rows){
-            if(err){
-                request.flash('error', 'Customer Search Query Error! ' + err);
-                response.redirect('/customer');
-            } else {
-                console.log(json_Dictionary);
-                response.send('lol');
-                // response.send('');
-            }
-            console.log('Number of rows from query: ' + rows);
-        });
+                if(!foundMatch && row.productID != null){
+                    productDictionary.matches = 1;
+                    productDictionary.productID = row.productID;
+                    productDictionary.productName = row.productName;
+                    productDictionary.productUnit = row.productUnit;
+                    productDictionary.productCategory = row.productCategory;
+                    productDictionary.numStoresCarry = row.storesCarry;
+                    productDictionary.minCarryPrice = row.minCarryPrice;
+                    productArray.push(productDictionary);
+                }
+            }, function(err, rows){
+                if(err) return;
+                db.each(query2, function(err, row) {
+                    if(err) return;
+                    for(var i = 0; i < productArray.length; i++){
+                        if(productArray[i].productID == row.productID && productArray[i].productID != null) {
+                            productArray[i].numStoresWithStock = row.numStoresWithStock;
+                            productArray[i].minCarryPriceWithStock = row.minCarryPriceWithStock;
+                            break;
+                        }
+                    }
+                }, function(err, rows){
+                    if(err) return;
+                    db.each(query3, function(err, row) {
+                        if(err) return;
+                        for(var i = 0; i < productArray.length; i++){
+                            if(productArray[i].productID == row.productID && productArray[i].productID != null) {
+                                productArray[i].ordersPast7 = row.ordersPast7;
+                                break;
+                            }
+                        }
+                    }, function(err, rows){
+                        if(err) return;
+                        db.each(query4, function(err, row) {
+                            if(err) return;
+                            for(var i = 0; i < productArray.length; i++){
+                                var skip = false;
+                                if(productArray[i].productID == row.pid && productArray[i].productID != null) {
+                                    for(var j = 0; j < productArray[i].listOfStores.length; j++){
+                                        if(productArray[i].listOfStores[j].storeName == row.storeName){
+                                            skip = true;
+                                        }
+                                    }
+                                    if(skip) break;
+                                    productArray[i].listOfStores.push({
+                                        storeName : row.storeName,
+                                        unitPrice : row.unitPrice,
+                                        carriesQuantity : row.carriesQuantity
+                                    });
+                                    break;
+                                }
+                            }
+                        }, function(err, rows){
+                            if (err) {
+                                request.flash('error', 'Query Error: ' + err);
+                                response.redirect('/customer/?cid=' + cid);
+                                return;
+                            } else {
+                                currentIteration++;
+                                if(currentIteration < keywords_Array.length){
+                                    
+                                    //Recursive callback since it's asynchronous. That's why we don't loop through the keywords.
+                                    searchProductsQuery(currentIteration);
+                                } else {
+                                    
+                                    //All keywords are done.
+                                    //Sort product matches in descending order using function closure.
+                                    productArray.sort(function(key1, key2) {
+                                        return (key2.matches) - (key1.matches);
+                                    });
+                                    
+                                    for(var i = 0; i < productArray.length; i++){
+                                        var tempArrayInStock = [];
+                                        var tempArrayNotInStock = [];
+                                        for(var j = 0; j < productArray[i].listOfStores.length; j++){
+                                            if(productArray[i].listOfStores[j].carriesQuantity > 0){
+                                                tempArrayInStock.push(productArray[i].listOfStores[j]);
+                                            } else {
+                                                tempArrayNotInStock.push(productArray[i].listOfStores[j]);
+                                            }
+                                            // console.log(productArray[i].listOfStores[j]);
+                                        }
+                                        tempArrayInStock.sort(function(key1, key2) {
+                                            return (key1.matches) - (key2.matches);
+                                        });
+                                        tempArrayNotInStock.sort(function(key1, key2) {
+                                            return (key1.matches) - (key2.matches);
+                                        });
+                                        
+                                        productArray[i].listOfStores[j] = tempArrayInStock.concat(tempArrayNotInStock);
+                                    }
+                                    
+                                    var basketQuery = "SELECT pid, sname, qty, cid FROM basket;";
+                                    var basketArray = [];
+                                    db.run(basketQuery, function(err, row) {
+                                        if(err) return;
+                                        basketArray.push(row);
+                                    }, function(err, rows){
+                                        if(err) {
+                                            request.flash('error', 'Basket Query Error: ' + err);
+                                            response.redirect('/customer/?cid=' + cid);
+                                            return;
+                                        }
+                                        response.render('../views/customer', {basketArray : basketArray, cid : cid, productArray : productArray, message : request.flash("error"), message: request.flash("success")});
+                                        console.log(productArray);
+                                    });
+                                }
+                            }
+                        });
+                    });
+                });
+            });
+        }
     });
 });
 
 //Place an order
 router.post('/customerorder', function(request, response){
     
+    var dropTableQuery = "drop table if exists basket;";
+    
+    var createTableQuery = "create table basket (" +
+    "pid           char(6)," +
+    "qty            int," + 
+    "sname          text," + 
+    "cid            text," + 
+    "primary key (pid));";
+    
+    console.log(request.body.basketArray);
+    
+    db.run(dropTableQuery, function(err, row) {
+        if(err) return;
+    }, function(err, rows){
+        if(err) return;
+        db.run(createTableQuery, function(err, row) {
+            if(err) return;
+        }, function(err, rows){
+            if(err) {
+                response.send("Error");
+                return;
+            }
+            
+            var iteration = -1;
+            orderInsertion(iteration);
+            
+            function orderInsertion(iteration){
+                iteration++;
+                if(iteration < request.body.basketArray.length){
+                        
+                        var insertionQuery = "INSERT INTO basket VALUES('" + request.body.basketArray[iteration].pid + "','" + 
+                        request.body.basketArray[iteration].qty + "','" + 
+                        request.body.basketArray[iteration].storeName + "','" +
+                        request.body.basketArray[iteration].cid + "');";
+                        
+                        db.run(insertionQuery, function(err, row) {
+                            if(err) return;
+                        }, function(err, rows){
+                            if(err) return;
+                            
+                            var orderQuery = "INSERT INTO orders VALUES(strftime('%s', 'now'),'" + request.body.basketArray[iteration].cid + "',date('now'),'Stanford University')";
+                            
+                            db.run(orderQuery, function(err, row) {
+                                if(err) return;
+                            }, function(err, rows){
+                            if(err) {
+                                response.send("Error");
+                                return;
+                            }
+                            orderInsertion(iteration);
+                        });
+                    });
+                } else {
+                    db.run("drop table if exists basket;", function(err, row) {
+                        if(err) return;
+                    }, function(err, rows){
+                        if(err) {
+                            response.send("Error");
+                            return;
+                        }
+                        response.send("Good");
+                    });
+                }
+            }
+        });
+    });
 });
+
+var orderList = {
+    orderID : 0,
+    orderDate: "",
+}
 
 //List orders
 router.post('/customerlist', function(request, response){
+    
+    var query1 = "SELECT o.oid, o.date, COUNT(ol.pid), SUM(ol.uprice * ol.qty)" + 
+	" FROM orders o, customers c, olines ol" + 
+	" WHERE o.cid = " + cid + " AND o.oid = ol.oid"
+	" ORDER BY o.odate DESC;" 
     
 });
 
@@ -292,8 +548,17 @@ router.post('/agentaddtostock', function(request, response){
 router.get('/logout', function(request, response){
     cid = "";
     aid = "";
-    request.flash('success', 'Logged Out!');
-    response.redirect('/');
+    db.run("delete from basket;", function(err, row) {
+        if(err) return;
+    }, function(err, rows){
+        if(err){
+            request.flash('error', 'Log Out Error: ' + err);
+            response.redirect('/login');
+        } else {
+            request.flash('success', 'Logged Out!');
+            response.redirect('/');
+        }
+    });
 });
 
 //------------------------------------------------------------->Create Tables and Insert Values Logic

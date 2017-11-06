@@ -4,35 +4,11 @@
         <div class="row">
             <div class="row text-center" style="display:flex; flex-wrap: wrap;">
                 
-                <div class="col-md-4 col-sm-4 col-lg-4">
+                <div class="col-md-8 col-sm-8 col-lg-8">
                     <h1 style="text-align: center">Search For Products</h1>
                     <form action="/customersearch" method="POST">
                         <div class="form-group">
                             <textarea class="form-control" rows="10" type="text" name="search_products_keywords" placeholder="Queries" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <button class="btn btn-lg btn-primary btn-block">Submit!</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="col-md-4 col-sm-4 col-lg-4">    
-                    <h1 style="text-align: center">Place An Order</h1>
-                    <form action="/">
-                        <div class="form-group">
-                            <textarea class="form-control" rows="10" type="text" name="order_products_query" placeholder="Queries" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <button class="btn btn-lg btn-primary btn-block">Submit!</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="col-md-4 col-sm-4 col-lg-4">    
-                    <h1 style="text-align: center">List Orders</h1>
-                    <form action="/">
-                        <div class="form-group">
-                            <textarea class="form-control" rows="10" type="text" name="list_products_query" placeholder="Queries" ></textarea>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-lg btn-primary btn-block">Submit!</button>
@@ -67,12 +43,39 @@
                 
                 <div class="col-md-4 col-sm-4 col-lg-4">    
                     <h1 style="text-align: center">Product Details: </h1>
-                    <p id="productDetails"></p>
-                    <div class="form-group">
-                        <input id="quantityField" class="form-control" type="number" min="1" placeholder="1" required>
+                        <div class="form-group">
+                            <input id="quantityField" class="form-control" type="number" min="1" placeholder="1" required>
+                        </div>
+                        <ul id="productDetails">
+                        </ul>
+                </div>
+                
+                <div class="col-md-4 col-sm-4 col-lg-4">    
+                    <h1 style="text-align: center">Basket: </h1>
+                    <div class="container">
+                        <ul id="basket">
+                            
+                        </ul>
                     </div>
-                    <div class="form-group">
-                        <button onclick="add()" class="btn btn-lg btn-primary btn-block">Place In Basket!</button>
+                    <button id = "order" onclick="order()" class="btn btn-lg btn-primary btn-block">Order</button>
+                </div>
+                
+                <div class="col-md-4 col-sm-4 col-lg-4">    
+                    <h1 style="text-align: center">Orders: </h1>
+                    <div class="container">
+                        <ul id="orders">
+                            
+                        </ul>
+                    </div>
+                    <button id = "listOrders" onclick="listOrders()" class="btn btn-lg btn-primary btn-block">List Orders!</button>
+                </div>
+                
+                <div class="col-md-4 col-sm-4 col-lg-4">    
+                    <h1 style="text-align: center">Orders Info </h1>
+                    <div class="container">
+                        <ul id="orderinfo">
+                            
+                        </ul>
                     </div>
                 </div>
                 
@@ -81,12 +84,14 @@
     </div>
     
     <script>
-        var arr = [];
-        var counter = 0;
-        console.log(<%=id%>);
-        for(var i = 0; i < 48; i++){
-            arr.push(String(i));
+        var productArray = [];
+        if(<%- JSON.stringify(productArray) %> != {}){
+            productArray = <%- JSON.stringify(productArray) %>;
         }
+        
+        var cid = '<%=cid%>';
+        
+        var counter = 0;
         
         var searchFieldForm1 = document.getElementById("searchFieldForm1");
         var searchFieldForm2 = document.getElementById("searchFieldForm2");
@@ -102,12 +107,17 @@
         
         var next5Button = document.getElementById("next5Button");
         
-        document.getElementById("quantityField").defaultValue = 1;
         var productDetails = document.getElementById("productDetails");
+        var productDetailsText = document.getElementById("productDetailsText");
+        productDetails.style.display = "none";
         
-        if(arr.length < 5){
+        var basket = document.getElementById("basket");
+        
+        document.getElementById("quantityField").defaultValue = 1;
+        
+        if(productArray.length < 5 && productArray.length != undefined){
             next5Button.style.display = "none";
-            switch(arr.length){
+            switch(productArray.length){
                 case 0:
                     searchFieldForm1.style.display = "none";
                     searchFieldForm2.style.display = "none";
@@ -120,53 +130,255 @@
                     searchFieldForm2.style.display = "none";
                     searchFieldForm3.style.display = "none";
                     searchFieldForm4.style.display = "none";
-                    searchField5.innerHTML = arr[0]; 
+                    searchField5.innerHTML = assignText(0); 
                     break;
                 case 2: 
                     searchFieldForm1.style.display = "none";
                     searchFieldForm2.style.display = "none";
                     searchFieldForm3.style.display = "none";
-                    searchField4.innerHTML = arr[0]; 
-                    searchField5.innerHTML = arr[1];
+                    searchField4.innerHTML = assignText(0); 
+                    searchField5.innerHTML = assignText(1); 
                     break;
                 case 3:
                     searchFieldForm1.style.display = "none";
                     searchFieldForm2.style.display = "none";
-                    searchField3.innerHTML = arr[0]; 
-                    searchField4.innerHTML = arr[1]; 
-                    searchField5.innerHTML = arr[2];
+                    searchField3.innerHTML = assignText(0); 
+                    searchField4.innerHTML = assignText(1); 
+                    searchField5.innerHTML = assignText(2); 
                     break;
                 case 4:
                     searchFieldForm1.style.display = "none";
-                    searchField2.innerHTML = arr[0]; 
-                    searchField3.innerHTML = arr[1]; 
-                    searchField4.innerHTML = arr[2]; 
-                    searchField5.innerHTML = arr[3];
+                    searchField2.innerHTML = assignText(0);  
+                    searchField3.innerHTML = assignText(1); 
+                    searchField4.innerHTML = assignText(2); 
+                    searchField5.innerHTML = assignText(3); 
                     break;
             }
+        } else if (productArray.length != undefined) {
+            searchField1.innerHTML = assignText(0); 
+            searchField2.innerHTML = assignText(1);  
+            searchField3.innerHTML = assignText(2);  
+            searchField4.innerHTML = assignText(3);  
+            searchField5.innerHTML = assignText(4); 
         } else {
-            searchField1.innerHTML = arr[0]; 
-            searchField2.innerHTML = arr[1]; 
-            searchField3.innerHTML = arr[2]; 
-            searchField4.innerHTML = arr[3]; 
-            searchField5.innerHTML = arr[4];
+            searchFieldForm1.style.display = "none";
+            searchFieldForm2.style.display = "none";
+            searchFieldForm3.style.display = "none";
+            searchFieldForm4.style.display = "none";
+            searchFieldForm5.style.display = "none";
+            next5Button.style.display = "none";
         }
         
         function list(){
             
             counter += 5;
             
-            searchField1.innerHTML = arr[counter % arr.length]; 
-            searchField2.innerHTML = arr[(counter + 1) % arr.length]; 
-            searchField3.innerHTML = arr[(counter + 2) % arr.length]; 
-            searchField4.innerHTML = arr[(counter + 3) % arr.length]; 
-            searchField5.innerHTML = arr[(counter + 4) % arr.length]; 
+            searchField1.innerHTML = assignText(counter % productArray.length); 
+            searchField2.innerHTML = assignText((counter + 1) % productArray.length); 
+            searchField3.innerHTML = assignText((counter + 2) % productArray.length);
+            searchField4.innerHTML = assignText((counter + 3) % productArray.length);
+            searchField5.innerHTML = assignText((counter + 4) % productArray.length);
             
         }
         
-        function details(value){
-            productDetails.innerHTML = arr[(counter + value) % arr.length];
+        function assignText(value){
+            var str = "Product ID : " + productArray[value].productID + 
+                    "<br>Product Name : " + productArray[value].productName + 
+                    "<br>Product Unit : " + productArray[value].productUnit + 
+                    "<br>Number of stores that carries : " + productArray[value].numStoresCarry + 
+                    "<br>Minimum Price of that carries : " + productArray[value].minCarryPrice + 
+                    "<br>Minimum of stores with stock : " + productArray[value].numStoresWithStock + 
+                    "<br>Minimum Price of store with stock : " + productArray[value].minCarryPriceWithStock + 
+                    "<br>Number of orders within the past 7 days : " + productArray[value].ordersPast7;
+            return str;
         }
+        
+        function details(val){
+            productDetails.style.display = "inline";
+            if(productArray.length < 5){
+                switch(val){
+                    case 0: 
+                        assignTextDetails(4);
+                        break;
+                    case 1:
+                        assignTextDetails(3);
+                        break;
+                    case 2: 
+                        assignTextDetails(2);
+                        break;
+                    case 3: 
+                        assignTextDetails(1);
+                        break;
+                    case 4: 
+                        assignTextDetails(0);
+                        break;
+                }
+            } else {
+                productDetailsText.innerHTML = assignTextDetails((counter + val) % productArray.length);
+            }
+        }
+        
+        var basketArray = [];
+        if(<%- JSON.stringify(basketArray) %> != {} && <%- JSON.stringify(basketArray) %> != []){
+            basketArray = <%- JSON.stringify(basketArray) %>;
+            for(var i = 0; i < basketArray.length; i++){
+                var node = document.createElement("LI");
+                node.id = "order" + basketArray[i].pid;
+                var pidTextNode = document.createElement("P");
+                var quantityTextNode = document.createElement("P");
+                pidTextNode.appendChild(document.createTextNode("pid : " + basketArray[i].pid));
+                quantityTextNode.appendChild(document.createTextNode("quantity : " + basketArray[i].qty));
+                quantityTextNode.id = "qtyorder" + basketArray[i].qty;
+                
+                var button = document.createElement("input");
+                button.type = "button";
+                
+                button.data = basketArray[i].pid;
+                button.value = "Delete!";
+                
+                button.onclick = function(){
+                    for(var ord = 0; ord < basketArray.length; ord++){
+                        if(basketArray[ord].pid == this.data){
+                            basketArray.splice(ord);
+                            basket.removeChild(document.getElementById("order" + this.data));
+                            break;
+                        }
+                    }
+                }
+                
+                node.appendChild(pidTextNode);
+                node.appendChild(quantityTextNode);
+                node.appendChild(button);
+                basket.appendChild(node);
+            }
+        }
+        
+        function assignTextDetails(value){
+            while (productDetails.firstChild) {
+                productDetails.removeChild(productDetails.firstChild);
+            }
+            var str = "- Product ID : " + productArray[value].productID + 
+                    " - Product Name : " + productArray[value].productName + 
+                    " - Product Unit : " + productArray[value].productUnit + 
+                    " - Product Category : " + productArray[value].productCategory + 
+                    " - Number of orders within the past 7 days : " + productArray[value].ordersPast7;
+                    
+            var node = document.createElement("P");
+            node.appendChild(document.createTextNode(str));
+            productDetails.appendChild(node);
+            
+            var quantity = document.getElementById("quantityField").value;
+            
+            for(var j = 0; j < productArray[value].listOfStores.length; j++){
+                //This happens when we split the keywords by space and the user enteres an empty or newline.
+                //Why didn't we just check it in the customer search router? Well because recursive async problems.
+                if(typeof productArray[value].listOfStores[j].storeName != 'undefined'){
+                    
+                    var str = "Store Name : " + productArray[value].listOfStores[j].storeName +
+                        " Store Unit Price : " + productArray[value].listOfStores[j].unitPrice +
+                        " Store Stock : " + productArray[value].listOfStores[j].carriesQuantity;
+            
+                    var node = document.createElement("LI");
+                    node.appendChild(document.createTextNode(str));
+                    productDetails.appendChild(node);
+                    var button = document.createElement("input");
+                    button.type = "button";
+                    
+                    button.data = {carriesQty : productArray[value].listOfStores[j].carriesQuantity, pid : productArray[value].productID, storeName : productArray[value].listOfStores[j].storeName, qty : quantity, cid : cid};
+                    button.value = "Add To Basket!";
+                    button.onclick = function(){
+                        console.log(this.data);
+                        quantity = document.getElementById("quantityField").value;
+                        this.data.qty = quantity;
+                        if(quantity <= this.data.carriesQty){
+                            var found = false;
+                            for(var ord = 0; ord < basketArray.length; ord++){
+                                if(basketArray[ord].pid == this.data.pid){
+                                    found = true;
+                                    basketArray[ord].qty = quantity;
+                                    var nodepid = document.getElementById("qtyorder" + this.data.pid);
+                                    nodepid.innerHTML = "quantity: " + quantity;
+                                    break;
+                                }
+                            }
+                            if(!found) {
+                                basketArray.push(this.data);
+                                
+                                var node = document.createElement("LI");
+                                node.id = "order" + this.data.pid;
+                                var pidTextNode = document.createElement("P");
+                                var quantityTextNode = document.createElement("P");
+                                pidTextNode.appendChild(document.createTextNode("pid : " + this.data.pid));
+                                quantityTextNode.appendChild(document.createTextNode("quantity : " + quantity));
+                                quantityTextNode.id = "qtyorder" + this.data.pid;
+                                
+                                var button = document.createElement("input");
+                                button.type = "button";
+                                
+                                button.data = productArray[value].productID;
+                                button.value = "Delete!";
+                                
+                                button.onclick = function(){
+                                    for(var ord = 0; ord < basketArray.length; ord++){
+                                        if(basketArray[ord].pid == this.data){
+                                            basketArray.splice(ord);
+                                            basket.removeChild(document.getElementById("order" + this.data));
+                                            break;
+                                        }
+                                    }
+                                }
+                            
+                                node.appendChild(pidTextNode);
+                                node.appendChild(quantityTextNode);
+                                node.appendChild(button);
+                                basket.appendChild(node);
+                            }
+                        }
+                    };
+                    productDetails.appendChild(button);
+                    productDetails.appendChild(document.createElement('hr'));
+                }
+            }
+            
+            return str;
+        }
+        
+        function order(){
+            console.log(basketArray);
+            var request = $.ajax({
+              url: "/customerorder",
+              type: "POST",
+              data: {basketArray:basketArray}
+            });
+            
+            request.done(function(msg) {
+                if(msg == "Good"){
+                    while (productDetails.firstChild) {
+                        productDetails.removeChild(productDetails.firstChild);
+                    }
+                    while (basket.firstChild) {
+                        basket.removeChild(basket.firstChild);
+                    }
+                } else {
+                       
+                }
+            });
+        }
+        
+        function listOrders(){
+            var request = $.ajax({
+              url: "/customerlist",
+              type: "GET"
+            });
+            
+            request.done(function(orderArr) {
+                for(var i = 0; i < orderArr.length; i++){
+                    
+                }
+            });
+            
+        }
+        
     </script>
     
 <% include ./partials/footer %>
