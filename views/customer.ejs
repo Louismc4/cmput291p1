@@ -6,6 +6,7 @@
                 
                 <div class="col-md-8 col-sm-8 col-lg-8">
                     <h1 style="text-align: center">Search For Products</h1>
+                    <h2 style="text-align: center">Comma Seperated</h2>
                     <form action="/customersearch" method="POST">
                         <div class="form-group">
                             <textarea class="form-control" rows="10" type="text" name="search_products_keywords" placeholder="Queries" required></textarea>
@@ -52,31 +53,33 @@
                 
                 <div class="col-md-4 col-sm-4 col-lg-4">    
                     <h1 style="text-align: center">Basket: </h1>
-                    <div class="container">
                         <ul id="basket">
                             
                         </ul>
-                    </div>
                     <button id = "order" onclick="order()" class="btn btn-lg btn-primary btn-block">Order</button>
                 </div>
                 
                 <div class="col-md-4 col-sm-4 col-lg-4">    
                     <h1 style="text-align: center">Orders: </h1>
-                    <div class="container">
-                        <ul id="orders">
-                            
-                        </ul>
-                    </div>
-                    <button id = "listOrders" onclick="listOrders()" class="btn btn-lg btn-primary btn-block">List Orders!</button>
+                    <form action="/customerlist" method="POST">
+                        <div class="form-group">
+                            <button id = "listOrders" class="btn btn-lg btn-primary btn-block">List Orders!</button>
+                        </div>
+                    </form>
                 </div>
                 
-                <div class="col-md-4 col-sm-4 col-lg-4">    
-                    <h1 style="text-align: center">Orders Info </h1>
-                    <div class="container">
-                        <ul id="orderinfo">
-                            
-                        </ul>
-                    </div>
+                <div class="col-md-4 col-sm-4 col-lg-4">
+                    <h1 style="text-align: center">Orders: </h1>
+                    <ul id="orderlist">
+                        <% for(var i=0; i < orderList.length; i++) { %>
+                           <li>
+                             <p>oid : <%= orderList[i].oid %></p>
+                             <p>cid : <%= orderList[i].cid %></p>
+                             <p>PickUpTime : <%= orderList[i].odate %></p>
+                             <p>DropOffTime : <%= orderList[i].address %></p>
+                           </li>
+                        <% } %>
+                    </ul>
                 </div>
                 
             </div>
@@ -365,19 +368,18 @@
             });
         }
         
-        function listOrders(){
-            var request = $.ajax({
-              url: "/customerlist",
-              type: "GET"
-            });
+        // function listOrders(){
+        //     var request = $.ajax({
+        //       url: "/customerlist",
+        //       type: "POST"
+        //     });
             
-            request.done(function(orderArr) {
-                for(var i = 0; i < orderArr.length; i++){
+        //     request.done(function(orderArr) {
+        //         for(var i = 0; i < orderArr.length; i++){
                     
-                }
-            });
-            
-        }
+        //         }
+        //     });
+        // }
         
     </script>
     

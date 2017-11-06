@@ -4,20 +4,79 @@
         <div class="row">
             <div class="col-md-4 col-sm-4 col-lg-4">
                 <h1 style="text-align: center">Set Up Delivery</h1>
-                <form action="/">
+                <form action="/agentsetupdelivery" method="POST">
                     <div class="form-group">
-                        <textarea class="form-control" rows="20" type="text" name="setup_delivery_query" placeholder="Queries"></textarea>
+                        <p>oid</p>
+                        <input class="form-control" type="number" name="oid" placeholder="Ex : 100" required>
+                    </div>
+                    <p>Date and Time</p>
+                    <div class="form-group">
+                        <input class="form-control" name="time" placeholder="Ex : 2017-11-03 18:50:06">
                     </div>
                     <div class="form-group">
-                        <button class="btn btn-lg btn-primary btn-block">Submit!</button>
+                        <button class="btn btn-lg btn-primary btn-block">Set up delivery!</button>
                     </div>
                 </form>
             </div>
             <div class="col-md-4 col-sm-4 col-lg-4">
                 <h1 style="text-align: center">Update Delivery</h1>
-                <form action="/">
+                <form action="/agentvieworders" method="POST">
+                    <p>TrackingNo</p>
                     <div class="form-group">
-                        <textarea class="form-control" rows="20" type="text" name="update_delivery_query" placeholder="Queries"></textarea>
+                        <input class="form-control" name="trackingNo" type="number" placeholder="Ex : 1003" required>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-lg btn-primary btn-block">View Orders!</button>
+                    </div>
+                </form>
+                <form action="/agentupdatedelivery" method="POST">
+                    <p>TrackingNo</p>
+                    <div class="form-group">
+                        <input class="form-control" name="trackingNo" type="number" placeholder="Ex : 1003" required>
+                    </div>
+                    
+                    <p>Pick Up Time</p>
+                    <div class="form-group">
+                        <input class="form-control" name="pickuptime" type="text" placeholder="Ex : 2017-11-03 18:50:06">
+                    </div>
+                    
+                    <p>Drop Off Time</p>
+                    <div class="form-group">
+                        <input class="form-control" name="dropofftime" type="text" placeholder="Ex : 2017-11-03 20:50:06">
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn btn-lg btn-primary btn-block">Update Delivery!</button>
+                    </div>
+                </form>
+                <form action="/agentdeletedelivery" method="POST">
+                    <p>TrackingNo</p>
+                    <div class="form-group">
+                        <input class="form-control" name="trackingNo" type="number" placeholder="Ex : 1003" required>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-lg btn-danger btn-block">Delete!</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4 col-sm-4 col-lg-4">
+                <h1 style="text-align: center">Add To Stock</h1>
+                <form action="/agentaddtostock" method="POST">
+                    <p>Product ID</p>
+                    <div class="form-group">
+                        <input class="form-control" name="productid" type="text" placeholder="Ex : p10" required>
+                    </div>
+                    <p>Store ID</p>
+                    <div class="form-group">
+                        <input class="form-control" name="storeid" type="number" placeholder="Ex : 20" required>
+                    </div>
+                    <p>Quantity To Add</p>
+                    <div class="form-group">
+                        <input class="form-control" name="quantity" type="number" placeholder="Ex : 10" required>
+                    </div>
+                    <p>Price</p>
+                    <div class="form-group">
+                        <input class="form-control" name="unitprice" type="number" placeholder="Ex : 3.5">
                     </div>
                     <div class="form-group">
                         <button class="btn btn-lg btn-primary btn-block">Submit!</button>
@@ -25,15 +84,16 @@
                 </form>
             </div>
             <div class="col-md-4 col-sm-4 col-lg-4">
-                <h1 style="text-align: center">Add To Stock</h1>
-                <form action="/addtostock">
-                    <div class="form-group">
-                        <textarea class="form-control" rows="20" type="text" name="add_to_stock_query" placeholder="Queries"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-lg btn-primary btn-block">Submit!</button>
-                    </div>
-                </form>
+                <h1 style="text-align: center">Orders: </h1>
+                <ul id="orderlist">
+                    <% for(var i=0; i < orderList.length; i++) { %>
+                       <li>
+                         <p>oid : <%= orderList[i].oid %></p>
+                         <p>PickUpTime : <%= orderList[i].pickuptime %></p>
+                         <p>DropOffTime : <%= orderList[i].dropofftime %></p>
+                       </li>
+                    <% } %>
+                </ul>
             </div>
         </div>
     </div>

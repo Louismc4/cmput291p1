@@ -3,6 +3,12 @@ var express   = require('express'),
     sqlite3 = require('sqlite3').verbose(),
     db = new sqlite3.Database('291.db');
 
+/*
+* Why didn't we split these into multiple routes? Well splitting them across files requires us to close 
+* and load new instances of the database which gives us segmentation fault problems... 
+*/
+
+
 var cid = "";
 var aid = "";
 
@@ -238,7 +244,7 @@ router.get('/customer', function(request, response){
                 response.redirect('/customer/?cid=' + cid);
                 return;
             }
-            response.render('../views/customer', {basketArray : basketArray, cid : cid, productArray : {}, message : request.flash("error"), message: request.flash("success")});
+            response.render('../views/customer', {basketArray : basketArray, orderList : [], cid : cid, productArray : {}, message : request.flash("error"), message: request.flash("success")});
         });
     }
 });
@@ -253,7 +259,8 @@ router.post('/customersearch', function(request, response){
         return;
     }
     
-    var keywords_Array = keywords.split(' ');
+    //For all keywords we use recursive async and check for matches
+    var keywords_Array = keywords.split(',');
     
     var productArray = [];
 
@@ -308,7 +315,10 @@ router.post('/customersearch', function(request, response){
                 listOfStores : [],
                 ordersPast7 : 0
             }
+            
+            //Query for products for each keyword
 		    
+		    //Query1
             db.each(query1, function(err, row) {
                 if (err) return;
                 var foundMatch = false;
@@ -331,6 +341,7 @@ router.post('/customersearch', function(request, response){
                 }
             }, function(err, rows){
                 if(err) return;
+                //Query2
                 db.each(query2, function(err, row) {
                     if(err) return;
                     for(var i = 0; i < productArray.length; i++){
@@ -342,6 +353,7 @@ router.post('/customersearch', function(request, response){
                     }
                 }, function(err, rows){
                     if(err) return;
+                    //Query3
                     db.each(query3, function(err, row) {
                         if(err) return;
                         for(var i = 0; i < productArray.length; i++){
@@ -352,6 +364,7 @@ router.post('/customersearch', function(request, response){
                         }
                     }, function(err, rows){
                         if(err) return;
+                        //Query4
                         db.each(query4, function(err, row) {
                             if(err) return;
                             for(var i = 0; i < productArray.length; i++){
@@ -390,6 +403,7 @@ router.post('/customersearch', function(request, response){
                                         return (key2.matches) - (key1.matches);
                                     });
                                     
+                                    //Here we sort by those in stock first and append to those stores who don't have stock.
                                     for(var i = 0; i < productArray.length; i++){
                                         var tempArrayInStock = [];
                                         var tempArrayNotInStock = [];
@@ -399,7 +413,6 @@ router.post('/customersearch', function(request, response){
                                             } else {
                                                 tempArrayNotInStock.push(productArray[i].listOfStores[j]);
                                             }
-                                            // console.log(productArray[i].listOfStores[j]);
                                         }
                                         tempArrayInStock.sort(function(key1, key2) {
                                             return (key1.matches) - (key2.matches);
@@ -408,9 +421,11 @@ router.post('/customersearch', function(request, response){
                                             return (key1.matches) - (key2.matches);
                                         });
                                         
+                                        //Finally we concatenate them
                                         productArray[i].listOfStores[j] = tempArrayInStock.concat(tempArrayNotInStock);
                                     }
                                     
+                                    //When the user reloads the page we reload the basket...
                                     var basketQuery = "SELECT pid, sname, qty, cid FROM basket;";
                                     var basketArray = [];
                                     db.run(basketQuery, function(err, row) {
@@ -422,7 +437,7 @@ router.post('/customersearch', function(request, response){
                                             response.redirect('/customer/?cid=' + cid);
                                             return;
                                         }
-                                        response.render('../views/customer', {basketArray : basketArray, cid : cid, productArray : productArray, message : request.flash("error"), message: request.flash("success")});
+                                        response.render('../views/customer', {orderList : [], basketArray : basketArray, cid : cid, productArray : productArray, message : request.flash("error"), message: request.flash("success")});
                                         console.log(productArray);
                                     });
                                 }
@@ -438,6 +453,7 @@ router.post('/customersearch', function(request, response){
 //Place an order
 router.post('/customerorder', function(request, response){
     
+    //Delete and create a fresh basket when they order.
     var dropTableQuery = "drop table if exists basket;";
     
     var createTableQuery = "create table basket (" +
@@ -446,8 +462,6 @@ router.post('/customerorder', function(request, response){
     "sname          text," + 
     "cid            text," + 
     "primary key (pid));";
-    
-    console.log(request.body.basketArray);
     
     db.run(dropTableQuery, function(err, row) {
         if(err) return;
@@ -461,6 +475,7 @@ router.post('/customerorder', function(request, response){
                 return;
             }
             
+            //Since there are a lot of statements potentially we need to use recursive async
             var iteration = -1;
             orderInsertion(iteration);
             
@@ -468,25 +483,30 @@ router.post('/customerorder', function(request, response){
                 iteration++;
                 if(iteration < request.body.basketArray.length){
                         
-                        var insertionQuery = "INSERT INTO basket VALUES('" + request.body.basketArray[iteration].pid + "','" + 
-                        request.body.basketArray[iteration].qty + "','" + 
-                        request.body.basketArray[iteration].storeName + "','" +
-                        request.body.basketArray[iteration].cid + "');";
+                    //Insert into the basket in case something fails
+                    var insertionQuery = "INSERT INTO basket VALUES('" + request.body.basketArray[iteration].pid + "','" + 
+                    request.body.basketArray[iteration].qty + "','" + 
+                    request.body.basketArray[iteration].storeName + "','" +
+                    request.body.basketArray[iteration].cid + "');";
+                    
+                    db.run(insertionQuery, function(err, row) {
+                        if(err) return;
+                    }, function(err, rows){
+                        if(err) return;
                         
-                        db.run(insertionQuery, function(err, row) {
+                        //Insert into the orders
+                        var orderQuery = "INSERT INTO orders VALUES(strftime('%s', 'now'),'" + request.body.basketArray[iteration].cid + "',date('now'),'Stanford University')";
+                        
+                        db.run(orderQuery, function(err, row) {
                             if(err) return;
                         }, function(err, rows){
-                            if(err) return;
-                            
-                            var orderQuery = "INSERT INTO orders VALUES(strftime('%s', 'now'),'" + request.body.basketArray[iteration].cid + "',date('now'),'Stanford University')";
-                            
-                            db.run(orderQuery, function(err, row) {
-                                if(err) return;
-                            }, function(err, rows){
                             if(err) {
                                 response.send("Error");
                                 return;
                             }
+                            
+                            var olinesQuery = "INSERT INTO orders VALUES(strftime('%s', 'now'),'" + request.body.basketArray[iteration].cid + "',date('now'),'Stanford University')";
+                            
                             orderInsertion(iteration);
                         });
                     });
@@ -514,10 +534,21 @@ var orderList = {
 //List orders
 router.post('/customerlist', function(request, response){
     
-    var query1 = "SELECT o.oid, o.date, COUNT(ol.pid), SUM(ol.uprice * ol.qty)" + 
-	" FROM orders o, customers c, olines ol" + 
-	" WHERE o.cid = " + cid + " AND o.oid = ol.oid"
-	" ORDER BY o.odate DESC;" 
+    var orderList = [];
+    var query = "SELECT oid, cid, odate, address FROM orders;";
+    
+	db.each(query, function(err, row){
+        if(err) return;
+        orderList.push({oid : row.oid, cid : row.cid, odate : row.odate, address : row.address});
+    }, function(err, rows){
+        if(err){
+            request.flash('error', 'View Error!');
+            response.redirect('/customer/?cid=' + cid);
+            return;
+        } else {
+            response.render('../views/customer', {cid : cid, orderList : orderList, basketArray : [], productArray: [], message : request.flash("error"), message: request.flash("success")});
+        }
+    });
     
 });
 
@@ -525,26 +556,240 @@ router.post('/customerlist', function(request, response){
 
 //Agent view page logic
 router.get('/agent', function(request, response){
-    response.render('../views/agent', {message : request.flash("error"), message: request.flash("success")});
+    aid = request.query.aid;
+    console.log(aid);
+    if(aid == "" || aid == undefined){
+        request.flash('error', 'You\'re not logged in!');
+        response.redirect('/login');
+    } else {
+        response.render('../views/agent', {aid : aid, orderList : [], message : request.flash("error"), message: request.flash("success")});
+    }
 });
 
 //Set up a delivery
 router.post('/agentsetupdelivery', function(request, response){
     
+    var oid = request.body.oid;
+    var time = request.body.time;
+    
+    if(typeof oid == 'undefined' || oid == '') {
+        request.flash('error', 'Please fill out oid');
+        response.redirect('/agent/?aid=' + aid);
+        return;
+    }
+    
+    var query;
+    
+    if(time == '' || time == undefined){
+        query = "INSERT INTO deliveries VALUES(strftime('%s', 'now')," + oid  + ",null,null)"
+    } else {
+        query = "INSERT INTO deliveries VALUES(strftime('%s', 'now')," + oid  + ",'" + time + "',null)"
+    }
+    
+    db.run(query, function(err, row){
+        if(err) return;
+    }, function(err, rows){
+        if(err) return;
+        request.flash('success', 'Successfully set up!');
+        response.redirect('/agent/?aid=' + aid);
+    });
 });
 
 //Update a delivery
-router.post('/updatedelivery', function(request, response){
+//View the orders
+router.post('/agentvieworders', function(request, response){
+    var tno = request.body.trackingNo;
     
+    if(typeof tno == 'undefined' && tno == '') {
+        request.flash('error', 'Please fill tracking number!');
+        response.redirect('/agent/?aid=' + aid);
+        return;
+    }
+    var orderList = [];
+    var query = "SELECT oid, pickUpTime, dropOffTime FROM deliveries WHERE trackingNo = " + tno + ";";
+    console.log(query);
+    db.each(query, function(err, row){
+        if(err) return;
+        orderList.push({oid : row.oid, pickuptime : row.pickUpTime, dropofftime : row.dropOffTime});
+    }, function(err, rows){
+        if(err){
+            request.flash('error', 'View Error!');
+            response.redirect('/agent/?aid=' + aid);
+            return;
+        } else {
+            response.render('../views/agent', {aid : aid, orderList : orderList, message : request.flash("error"), message: request.flash("success")});
+        }
+    });
+});
+
+router.post('/agentupdatedelivery', function(request, response){
+    var tno = request.body.trackingNo;
+    var pickup = request.body.pickuptime;
+    var dropoff = request.body.dropofftime;
+    
+    if(typeof tno == 'undefined' || tno == '') {
+        request.flash('error', 'Please fill tracking number!');
+        response.redirect('/agent/?aid=' + aid);
+        return;
+    }
+    
+    //If only update dropoff
+    if(dropoff == '' || typeof dropoff == 'undefined' && pickup != '' && typeof pickup != undefined){
+        var query1 = "UPDATE deliveries" + 
+	    " SET pickUpTime = '" + pickup + "' WHERE trackingNo = " + tno + ";";
+	    
+        db.run(query1, function(err, row){
+            if(err) return;
+        }, function(err, rows){
+            if(err){
+                request.flash('error', 'Update Pickup Error!');
+                response.redirect('/agent/?aid=' + aid);
+                return;
+            } else {
+                request.flash('success', 'Update Pickup Success!');
+                response.redirect('/agent/?aid=' + aid);
+            }
+        });
+        
+        //If only update pickup
+    } else if(dropoff != '' && typeof dropoff != 'undefined' && pickup == '' || typeof pickup == 'undefined'){
+        var query2 = "UPDATE deliveries" + 
+	                " SET dropOffTime = '" + dropoff + "' WHERE trackingNo = " + tno + ";";
+	    
+        db.run(query2, function(err, row){
+            if(err) return;
+        }, function(err, rows){
+            if(err){
+                request.flash('error', 'Update Dropoff Error!');
+                response.redirect('/agent/?aid=' + aid);
+                return;
+            } else {
+                request.flash('success', 'Update Dropoff Success!');
+                response.redirect('/agent/?aid=' + aid);
+            }
+        });
+    
+        //Otherwise update both
+    } else if(pickup != '' && typeof pickup != 'undefined'){
+        
+        var query1 = "UPDATE deliveries" + 
+	    " SET pickUpTime = '" + pickup + "' WHERE trackingNo = " + tno + ";";
+
+        db.run(query1, function(err, row){
+            if(err) return;
+        }, function(err, rows){
+            if(err) {
+                request.flash('error', 'Update Pickup Error!');
+                response.redirect('/agent/?aid=' + aid);
+                return;
+            } else {
+                
+                if(dropoff != '' && typeof dropoff != 'undefined'){ 
+                    
+                    var query2 = "UPDATE deliveries" + 
+	                " SET dropOffTime = '" + dropoff + "' WHERE trackingNo = " + tno + ";";
+                    
+                    db.run(query2, function(err, row){
+                        if(err) return;
+                    }, function(err, rows){
+                        if(err){
+                            request.flash('error', 'Update Dropoff Error!');
+                            response.redirect('/agent/?aid=' + aid);
+                            return;
+                        }
+                        request.flash('success', 'Update Pickup and Dropoff Success!');
+                        response.redirect('/agent/?aid=' + aid);
+                    });
+                } else {
+                    request.flash('success', 'Update Pickup Success!');
+                    response.redirect('/agent/?aid=' + aid);
+                }
+            }
+        });
+    } else {
+        response.redirect('/agent/?aid=' + aid);
+    }
+});
+
+
+//Delete the delivery via tracking num
+router.post('/agentdeletedelivery', function(request, response){
+    var tno = request.body.trackingNo;
+    
+    if(typeof tno == 'undefined' || tno == '') {
+        request.flash('error', 'Please fill tracking number!');
+        response.redirect('/agent/?aid=' + aid);
+        return;
+    }
+    
+    var query1 = "DELETE FROM deliveries" + 
+	" WHERE trackingno = " + tno + ";";
+	
+    db.run(query1, function(err, row){
+        if(err) return;
+    }, function(err, rows){
+        if (err){
+            request.flash('error', 'Delete Error!');
+            response.redirect('/agent/?aid=' + aid);
+        }
+        request.flash('success', 'Successfully deleted!');
+        response.redirect('/agent/?aid=' + aid);
+    });
 });
 
 //List orders
 router.post('/agentaddtostock', function(request, response){
     
+    var pid = request.body.productid;
+    var sid = request.body.storeid;
+    var qty = request.body.quantity;
+    var unitprice = request.body.unitprice;
+    
+    if(typeof pid == 'undefined' || pid == '' || typeof sid == 'undefined' || sid == ''
+        || typeof qty == 'undefined' || qty == '') {
+        request.flash('error', 'Please fill the top 3 fields!');
+        response.redirect('/agent/?aid=' + aid);
+        return;
+    }
+    
+    //Update the quantity stock
+    
+    var query1 = "UPDATE carries" + 
+	" SET qty = (qty + " + qty + ")" + 
+    " WHERE carries.pid = '" + pid + "' AND carries.sid = " + sid + ";"
+    
+    db.run(query1, function(err, row){
+        if(err) return;
+    }, function(err, rows){
+        if(err) return;
+        if(unitprice != '' && typeof unitprice != undefined){
+            
+            //Update the unit price
+            
+            var query2 = "UPDATE carries" +
+	        " SET uprice = " + unitprice + 
+	        " WHERE carries.pid = '" + pid + "' AND carries.sid = " + sid + ";";
+            
+            db.run(query2, function(err, row){
+                if(err) return;
+            }, function(err, rows){
+                if(err) {
+                    request.flash('error', 'Update Error!');
+                    response.redirect('/agent/?aid=' + aid);
+                    return;
+                }
+                request.flash('success', 'Successfully updated w/ price!');
+                response.redirect('/agent/?aid=' + aid);
+            });
+        } else {
+            request.flash('success', 'Successfully updated!');
+            response.redirect('/agent/?aid=' + aid);
+        }
+    });
 });
 
 //------------------------------------------------------------->Logout Logic
-
+//Delete basket and remove cid and aid from authentication
 router.get('/logout', function(request, response){
     cid = "";
     aid = "";
@@ -552,8 +797,9 @@ router.get('/logout', function(request, response){
         if(err) return;
     }, function(err, rows){
         if(err){
-            request.flash('error', 'Log Out Error: ' + err);
-            response.redirect('/login');
+            request.flash('error', 'Logout Error!');
+            response.redirect('/agent/?aid=' + aid);
+            return;
         } else {
             request.flash('success', 'Logged Out!');
             response.redirect('/');
