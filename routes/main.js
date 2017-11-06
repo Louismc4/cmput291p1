@@ -1,12 +1,23 @@
 var express   = require('express'),
     router    = express.Router(),
-    sqlite3 = require('sqlite3').verbose(),
-    db = new sqlite3.Database('291.db');
+    sqlite3 = require('sqlite3').verbose();
+
+var db;
+
+databaseAssign();
+
+function databaseAssign(){
+    if(process.argv.length >= 2 && process.argv.slice(2)[0].includes('.db')){
+        db = new sqlite3.Database(process.argv.slice(2)[0]);
+    } else {
+        db = new sqlite3.Database('291.db');
+    }
+}
 
 /*
-* Why didn't we split these into multiple routes? Well splitting them across files requires us to close 
-* and load new instances of the database which gives us segmentation fault problems... 
-*/
+ * Why didn't we split these into multiple routes? Well splitting them across files requires us to close 
+ * and load new instances of the database which gives us segmentation fault problems... 
+ */
 
 
 var cid = "";
@@ -539,7 +550,9 @@ router.post('/customerlist', function(request, response){
     
 	db.each(query, function(err, row){
         if(err) return;
-        orderList.push({oid : row.oid, cid : row.cid, odate : row.odate, address : row.address});
+        if(row.cid == cid){
+            orderList.push({oid : row.oid, cid : row.cid, odate : row.odate, address : row.address});
+        }
     }, function(err, rows){
         if(err){
             request.flash('error', 'View Error!');
@@ -556,6 +569,8 @@ router.post('/customerlist', function(request, response){
 
 //Agent view page logic
 router.get('/agent', function(request, response){
+    
+    //Here we don't really need to assign aid but we can use it for "auth"...
     aid = request.query.aid;
     console.log(aid);
     if(aid == "" || aid == undefined){
