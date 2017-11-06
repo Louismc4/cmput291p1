@@ -7,8 +7,10 @@ var db;
 databaseAssign();
 
 function databaseAssign(){
-    if(process.argv.length >= 2 && process.argv.slice(2)[0].includes('.db')){
-        db = new sqlite3.Database(process.argv.slice(2)[0]);
+    if(process.argv.length > 2){
+        if(process.argv.slice(2)[0].includes('.db')){
+            db = new sqlite3.Database(process.argv.slice(2)[0]);
+        }
     } else {
         db = new sqlite3.Database('291.db');
     }
